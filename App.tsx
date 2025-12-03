@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GamePhase, GameState, ActionType, PlayerStats, GameEvent, EndingType } from './types';
-import { EVENTS, SPECIAL_EVENTS, INTERVIEWS, INITIAL_STATS } from './constants';
-import { PixelButton, PixelCard, StatBar, NoodleGirlAvatar, BlackHole, PixelPattern } from './components/PixelComponents';
+import { EVENTS, SPECIAL_EVENTS, INTERVIEWS, INITIAL_STATS, ENDING_DETAILS } from './constants';
+import { PixelButton, PixelCard, StatBar, NoodleGirlAvatar, BlackHole, PixelPattern, PixelPhone } from './components/PixelComponents';
 import { audio } from './services/audio';
 import { 
   Briefcase, BookOpen, MessageCircle, Coffee, Home, User, 
-  Volume2, VolumeX, RefreshCcw, Loader2, Sparkles, Star
+  Volume2, VolumeX, RefreshCcw, Loader2, Sparkles, Star, Trophy, X, Phone
 } from 'lucide-react';
 
 const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
@@ -63,6 +63,51 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
   );
 };
 
+const EndingsGallery = ({ unlocked, onClose }: { unlocked: string[], onClose: () => void }) => {
+  const endings = Object.values(EndingType);
+  
+  return (
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white border-4 border-black h-[80vh] flex flex-col relative shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]">
+        <div className="bg-yellow-300 p-3 border-b-4 border-black flex justify-between items-center">
+          <div className="flex items-center font-bold text-lg">
+            <Trophy className="mr-2" />
+            成就一览 ({unlocked.length}/{endings.length})
+          </div>
+          <button onClick={onClose} className="p-1 hover:bg-white border-2 border-transparent hover:border-black rounded">
+            <X size={24}/>
+          </button>
+        </div>
+        
+        <div className="overflow-y-auto p-4 flex-1 custom-scrollbar bg-gray-50">
+           {endings.map((type) => {
+             const isUnlocked = unlocked.includes(type);
+             const details = ENDING_DETAILS[type];
+             
+             return (
+               <div key={type} className={`mb-4 border-2 border-black p-3 relative ${isUnlocked ? 'bg-white' : 'bg-gray-200 opacity-80'}`}>
+                 <div className="flex justify-between items-start mb-2">
+                   <h3 className="font-bold">{details.title}</h3>
+                   {isUnlocked && <Star size={16} className="text-yellow-500 fill-yellow-500"/>}
+                 </div>
+                 
+                 {isUnlocked ? (
+                   <p className="text-sm text-gray-700">{details.description}</p>
+                 ) : (
+                   <div className="text-xs text-gray-500 flex flex-col gap-1">
+                      <p className="italic">??? (未达成)</p>
+                      <p className="font-mono text-[10px] bg-gray-300 inline-block px-1 py-0.5 rounded self-start">提示: {details.hint}</p>
+                   </div>
+                 )}
+               </div>
+             );
+           })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [showBootAnim, setShowBootAnim] = useState(true);
 
@@ -87,16 +132,44 @@ export default function App() {
   const [isInterviewing, setIsInterviewing] = useState(false);
   const [interviewResult, setInterviewResult] = useState<{passed: boolean, title: string} | null>(null);
 
+  // Scam Call States
+  const [callState, setCallState] = useState<'ringing' | 'dialog'>('ringing');
+
+  // Ending Gallery
+  const [showGallery, setShowGallery] = useState(false);
+  const [unlockedEndings, setUnlockedEndings] = useState<string[]>([]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   
   // Ref to track if BGM has started
   const bgmStarted = useRef(false);
 
   useEffect(() => {
+    // Load unlocked endings
+    const stored = localStorage.getItem('unlocked_endings');
+    if (stored) {
+      try {
+        setUnlockedEndings(JSON.parse(stored));
+      } catch (e) { console.error('Failed to load endings'); }
+    }
+  }, []);
+
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [gameState.history]);
+
+  // Handle scam ringing effect
+  useEffect(() => {
+    let interval: number;
+    if (gameState.phase === GamePhase.SCAM_CALL && callState === 'ringing') {
+        interval = window.setInterval(() => {
+            audio.playSfx('phone');
+        }, 1500);
+    }
+    return () => clearInterval(interval);
+  }, [gameState.phase, callState]);
 
   // --- Logic Helpers ---
 
@@ -137,7 +210,6 @@ export default function App() {
   };
 
   const handleAction = async (action: ActionType) => {
-    // No more async generation needed, but keeping async keyword for compatibility if needed later
     if (gameState.isGenerating) return; 
 
     audio.playSfx('click');
@@ -190,10 +262,22 @@ export default function App() {
     setGameState(prev => {
       // Check for immediate game over (Mood <= 0)
       if (prev.stats.mood <= 0) {
+        saveEnding(EndingType.BE1);
         return { ...prev, phase: GamePhase.ENDING, ending: EndingType.BE1 };
+      }
+      if (prev.stats.family <= -20) {
+        saveEnding(EndingType.BE2);
+        return { ...prev, phase: GamePhase.ENDING, ending: EndingType.BE2 };
       }
       
       const nextDay = prev.day + 1;
+
+      // Special Event Trigger: Week 2, Day 3
+      if (prev.week === 2 && nextDay === 3) {
+         setCallState('ringing');
+         return { ...prev, phase: GamePhase.SCAM_CALL, day: nextDay, currentEvent: null };
+      }
+
       if (nextDay > 6) {
         return { ...prev, phase: GamePhase.INTERVIEW, currentEvent: null, currentEventImage: null };
       }
@@ -243,6 +327,43 @@ export default function App() {
       }
     }, 2000); 
   };
+  
+  const handleScamChoice = (accept: boolean) => {
+    audio.playSfx('click');
+    if (!accept) {
+      // Reject
+      updateStats({ skill: 5 });
+      logEvent('接到神秘电话，理智拒绝，技能+5');
+      setGameState(prev => ({ ...prev, phase: GamePhase.WEEKLY_LOOP }));
+    } else {
+      // Accept
+      if (Math.random() < 0.5) {
+        // Bad Ending
+        audio.playSfx('fail');
+        setGameState(prev => ({ 
+             ...prev, 
+             stats: { ...prev.stats, money: 0 },
+             phase: GamePhase.ENDING,
+             ending: EndingType.BE4
+        }));
+        saveEnding(EndingType.BE4);
+      } else {
+        // Good Outcome
+        audio.playSfx('success');
+        updateStats({ skill: 10 });
+        logEvent('神秘导师竟然是真的！技能突飞猛进。');
+        setGameState(prev => ({ ...prev, phase: GamePhase.WEEKLY_LOOP }));
+      }
+    }
+  };
+
+  const saveEnding = (ending: EndingType) => {
+     if (!unlockedEndings.includes(ending)) {
+        const newUnlocked = [...unlockedEndings, ending];
+        setUnlockedEndings(newUnlocked);
+        localStorage.setItem('unlocked_endings', JSON.stringify(newUnlocked));
+     }
+  };
 
   const finishGame = () => {
     setGameState(prev => {
@@ -254,6 +375,7 @@ export default function App() {
           else ending = checkEnding(prev.stats, prev.passedInterviews) || EndingType.NE;
        }
        
+       saveEnding(ending);
        return { ...prev, phase: GamePhase.ENDING, ending: ending };
     });
   };
@@ -329,19 +451,18 @@ export default function App() {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-purple-100 p-6 text-center relative overflow-hidden">
         <PixelPattern />
+        
+        {showGallery && <EndingsGallery unlocked={unlockedEndings} onClose={() => setShowGallery(false)} />}
+
         <NoodleGirlAvatar pose={gameState.ending?.includes('BE') ? 'dead' : 'happy'} className="mb-8 scale-150 z-10" />
         <h2 className="text-3xl font-bold mb-4 z-10">结局达成</h2>
         <div className="bg-white border-4 border-black p-6 rounded-lg mb-8 shadow-xl z-10 max-w-sm w-full relative">
           <div className="absolute -top-3 -right-3 text-4xl animate-bounce">🏆</div>
-          <h1 className="text-3xl font-black text-purple-600 mb-2 break-words">{gameState.ending}</h1>
+          <h1 className="text-3xl font-black text-purple-600 mb-2 break-words">
+             {ENDING_DETAILS[gameState.ending || EndingType.NE].title}
+          </h1>
           <p className="text-gray-600 text-sm">
-             {gameState.ending === EndingType.GE3 ? '躺平人生：父母摊牌其实家里有钱，大别墅向你招手！' :
-              gameState.ending === EndingType.GE1 ? '误闯天家进入大厂：再不好过，如今也好过了。' :
-              gameState.ending === EndingType.GE2 ? '你刮中七位数。终于你可以在朋友圈发那句我不要很多钱，我要很多爱。' :
-              gameState.ending === EndingType.GE4 ? '找到了你喜欢的wlb的工作：你终于不被 offer 定义。' :
-              gameState.ending === EndingType.BE1 ? '心态彻底崩了...' :
-              gameState.ending === EndingType.BE2 ? '被迫相亲，生凑个“好”字...' :
-              gameState.ending === EndingType.NE  ? '你继承了家业，成为挂面大王。' : '...'}
+             {ENDING_DETAILS[gameState.ending || EndingType.NE].description}
           </p>
         </div>
         
@@ -352,9 +473,12 @@ export default function App() {
             <div>Family: {gameState.stats.family}</div>
         </div>
 
-        <div className="w-full max-w-xs z-10">
+        <div className="w-full max-w-xs z-10 space-y-3">
+             <PixelButton onClick={() => setShowGallery(true)} color="bg-yellow-300">
+               成就一览 <Trophy className="ml-2 w-4 h-4"/>
+            </PixelButton>
             <PixelButton onClick={restartGame} color="bg-green-300">
-            再活一次 <RefreshCcw className="ml-2 w-4 h-4"/>
+              再活一次 <RefreshCcw className="ml-2 w-4 h-4"/>
             </PixelButton>
         </div>
       </div>
@@ -443,6 +567,39 @@ export default function App() {
                      </p>
                  </div>
              )}
+           </div>
+        )}
+
+        {/* SCAM CALL UI */}
+        {gameState.phase === GamePhase.SCAM_CALL && (
+           <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6">
+             <PixelCard className="w-full max-w-sm">
+                {callState === 'ringing' ? (
+                  <div className="flex flex-col items-center py-8 cursor-pointer" onClick={() => setCallState('dialog')}>
+                     <PixelPhone className="w-32 h-32 mb-6" ringing={true} />
+                     <h2 className="text-xl font-bold animate-pulse text-red-500">神秘来电...</h2>
+                     <p className="text-xs text-gray-500 mt-2">(点击接听)</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center">
+                     <div className="flex items-center gap-2 mb-4">
+                        <Phone size={24} />
+                        <span className="font-bold">神秘人</span>
+                     </div>
+                     <p className="text-lg font-bold text-center mb-8">
+                       “你需要求职陪跑吗？<br/>保过大厂，不过退费！”
+                     </p>
+                     <div className="w-full space-y-3">
+                       <PixelButton onClick={() => handleScamChoice(true)} color="bg-green-300">
+                          需要! (抓住救命稻草)
+                       </PixelButton>
+                       <PixelButton onClick={() => handleScamChoice(false)} color="bg-red-300">
+                          不需要 (这就是诈骗)
+                       </PixelButton>
+                     </div>
+                  </div>
+                )}
+             </PixelCard>
            </div>
         )}
 

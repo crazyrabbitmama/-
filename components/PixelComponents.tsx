@@ -81,6 +81,35 @@ export const BlackHole = ({ className = '' }: { className?: string }) => (
   </div>
 );
 
+export const PixelPhone = ({ className = '', ringing = false }: { className?: string, ringing?: boolean }) => (
+  <div className={`relative ${className} ${ringing ? 'animate-[bounce_0.2s_infinite]' : ''}`}>
+    <svg viewBox="0 0 48 48" className="w-full h-full drop-shadow-lg" shapeRendering="crispEdges">
+      {/* Body */}
+      <rect x="14" y="6" width="20" height="36" fill="#333" stroke="black" strokeWidth="2" />
+      {/* Screen */}
+      <rect x="16" y="10" width="16" height="22" fill={ringing ? '#88ccff' : '#444'} />
+      {/* Button */}
+      <circle cx="24" cy="38" r="2" fill="#555" />
+      
+      {/* Ringing Lines */}
+      {ringing && (
+        <g stroke="black" strokeWidth="2" fill="none" className="animate-pulse">
+          <path d="M10 18 Q 6 24 10 30" />
+          <path d="M38 18 Q 42 24 38 30" />
+        </g>
+      )}
+      
+      {/* Caller ID if ringing */}
+      {ringing && (
+         <g>
+           <rect x="18" y="14" width="12" height="6" fill="#fff" />
+           <rect x="20" y="16" width="8" height="2" fill="#000" opacity="0.2" />
+         </g>
+      )}
+    </svg>
+  </div>
+);
+
 export const NoodleGirlAvatar = ({ 
   pose = 'normal', 
   className = "" 

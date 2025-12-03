@@ -84,8 +84,6 @@ export const EVENTS: Record<ActionType, GameEvent[]> = {
   ],
   [ActionType.PORTFOLIO]: [
      // Using Female Job Events as a pool for "Job Seeking" related activities or random portfolio events
-     // Or we just give raw stats. The prompt puts "Female Job Events" separately.
-     // We will integrate "Female Job Events" as random triggers during Portfolio/Work/Comm.
      {
        id: 'p1', title: '专注',
        text: '你修改了作品集的排版。看起来专业了一点点。',
@@ -153,4 +151,52 @@ export const INITIAL_STATS = {
   mood: 80,
   family: 50,
   money: 100
+};
+
+export const ENDING_DETAILS: Record<EndingType, { title: string, description: string, hint: string }> = {
+  [EndingType.GE3]: {
+    title: "家里有矿",
+    description: "躺平人生：父母摊牌其实家里有钱，大别墅向你招手！",
+    hint: "需极高家庭关系"
+  },
+  [EndingType.GE1]: {
+    title: "大厂offer",
+    description: "误闯天家进入大厂：再不好过，如今也好过了。",
+    hint: "需六边形战士 + 面试全通"
+  },
+  [EndingType.GE2]: {
+    title: "中彩票",
+    description: "你刮中七位数。终于你可以在朋友圈发那句我不要很多钱，我要很多爱。",
+    hint: "纯随机运气事件"
+  },
+  [EndingType.GE4]: {
+    title: "自洽人生",
+    description: "找到了你喜欢的WLB的工作：你终于不被 offer 定义。",
+    hint: "需高心态 + 均衡发展"
+  },
+  [EndingType.BE1]: {
+    title: "心态爆炸",
+    description: "心态彻底崩了...这破班谁爱上谁上。",
+    hint: "心态归零"
+  },
+  [EndingType.BE2]: {
+    title: "被迫相亲",
+    description: "被迫相亲，生凑个“好”字...你的一生被安排得明明白白。",
+    hint: "家庭关系破裂"
+  },
+  [EndingType.BE3]: {
+    title: "打工还贷",
+    description: "能力不足，面试全挂，只能继续打工还贷。",
+    hint: "能力低下且面试全败"
+  },
+  [EndingType.BE4]: {
+    title: "被骗个精光",
+    description: "你轻信了神秘人的求职陪跑，积蓄被骗个精光。在这个冰冷的城市，你连买挂面的钱都没了。",
+    hint: "切勿轻信陌生来电 (Bad End)"
+  },
+  [EndingType.NE]: {
+    title: "挂面大王",
+    description: "你继承了家业，成为挂面大王。其实也挺香的。",
+    hint: "普通结局"
+  }
 };

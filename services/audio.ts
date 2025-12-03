@@ -109,7 +109,7 @@ class AudioController {
      this.bgmNodes = [];
   }
 
-  public playSfx(type: 'click' | 'slurp' | 'jump' | 'error' | 'success' | 'fail' | 'fry') {
+  public playSfx(type: 'click' | 'slurp' | 'jump' | 'error' | 'success' | 'fail' | 'fry' | 'phone') {
     if (this.isMuted) return;
     this.init();
     if (!this.ctx) return;
@@ -180,6 +180,19 @@ class AudioController {
       case 'fail': // Descending tritone
         this.playNote(400, t, 0.2);
         this.playNote(280, t + 0.2, 0.4);
+        break;
+      
+      case 'phone': // Ringtone
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(800, t);
+        osc.frequency.setValueAtTime(800, t + 0.05);
+        osc.frequency.setValueAtTime(0, t + 0.051); // Silence
+        osc.frequency.setValueAtTime(800, t + 0.1);
+        osc.frequency.setValueAtTime(800, t + 0.15);
+        gain.gain.setValueAtTime(0.1, t);
+        gain.gain.setValueAtTime(0.1, t + 0.4);
+        osc.start(t);
+        osc.stop(t + 0.4);
         break;
     }
   }

@@ -3,7 +3,8 @@ export enum GamePhase {
   WEEKLY_LOOP = 'WEEKLY_LOOP',
   EVENT_RESULT = 'EVENT_RESULT',
   INTERVIEW = 'INTERVIEW',
-  ENDING = 'ENDING'
+  ENDING = 'ENDING',
+  SCAM_CALL = 'SCAM_CALL'
 }
 
 export enum ActionType {
@@ -54,6 +55,7 @@ export enum EndingType {
   BE1 = "心态爆炸",
   BE2 = "被迫相亲",
   BE3 = "打工还贷",
+  BE4 = "被骗个精光",
   NE = "挂面大王"
 }
 
