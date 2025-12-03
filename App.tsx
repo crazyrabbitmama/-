@@ -51,7 +51,7 @@ const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
          <div className="mt-8 animate-pop-in z-20 w-full max-w-sm px-6">
             <PixelCard>
                <p className="text-center font-bold text-lg md:text-xl leading-relaxed">
-                 重生后你选择在面点<br/>打工煮挂面<br/>同时准备实习
+                 重生后你选择在面店<br/>打工煮挂面<br/>同时准备实习
                </p>
                <div className="mt-4 text-center text-xs text-gray-500 animate-pulse">
                  (点击屏幕继续)
@@ -82,6 +82,11 @@ export default function App() {
   });
 
   const [isMuted, setIsMuted] = useState(false);
+  
+  // Interview UI States
+  const [isInterviewing, setIsInterviewing] = useState(false);
+  const [interviewResult, setInterviewResult] = useState<{passed: boolean, title: string} | null>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   
   // Ref to track if BGM has started
@@ -197,6 +202,9 @@ export default function App() {
   };
 
   const handleInterview = () => {
+    if (isInterviewing) return; // Prevent double clicks
+    setIsInterviewing(true);
+
     const interview = INTERVIEWS[gameState.week - 1];
     if (!interview) {
       finishGame();
@@ -205,6 +213,9 @@ export default function App() {
 
     const passed = interview.passCondition(gameState.stats);
     
+    // Show result immediately
+    setInterviewResult({ passed, title: interview.title });
+
     if (passed) {
       audio.playSfx('success');
       setGameState(prev => ({ ...prev, passedInterviews: prev.passedInterviews + 1 }));
@@ -217,6 +228,9 @@ export default function App() {
 
     // Show result briefly or move to next week
     setTimeout(() => {
+      setIsInterviewing(false); // Reset lock
+      setInterviewResult(null); // Reset result display
+
       if (gameState.week >= 6) {
         finishGame();
       } else {
@@ -245,6 +259,8 @@ export default function App() {
   };
 
   const restartGame = () => {
+    setIsInterviewing(false);
+    setInterviewResult(null);
     setGameState({
       phase: GamePhase.INTRO,
       week: 1,
@@ -319,10 +335,10 @@ export default function App() {
           <div className="absolute -top-3 -right-3 text-4xl animate-bounce">🏆</div>
           <h1 className="text-3xl font-black text-purple-600 mb-2 break-words">{gameState.ending}</h1>
           <p className="text-gray-600 text-sm">
-             {gameState.ending === EndingType.GE3 ? '父母摊牌其实家里有钱，大别墅向你招手！' :
-              gameState.ending === EndingType.GE1 ? '再不好过，如今也好过了。' :
-              gameState.ending === EndingType.GE2 ? '你刮中七位数。我不要很多钱，我要很多爱。' :
-              gameState.ending === EndingType.GE4 ? '你终于不被 offer 定义。' :
+             {gameState.ending === EndingType.GE3 ? '躺平人生：父母摊牌其实家里有钱，大别墅向你招手！' :
+              gameState.ending === EndingType.GE1 ? '误闯天家进入大厂：再不好过，如今也好过了。' :
+              gameState.ending === EndingType.GE2 ? '你刮中七位数。终于你可以在朋友圈发那句我不要很多钱，我要很多爱。' :
+              gameState.ending === EndingType.GE4 ? '找到了你喜欢的wlb的工作：你终于不被 offer 定义。' :
               gameState.ending === EndingType.BE1 ? '心态彻底崩了...' :
               gameState.ending === EndingType.BE2 ? '被迫相亲，生凑个“好”字...' :
               gameState.ending === EndingType.NE  ? '你继承了家业，成为挂面大王。' : '...'}
@@ -405,13 +421,28 @@ export default function App() {
         
         {/* Interview Phase UI */}
         {gameState.phase === GamePhase.INTERVIEW && (
-           <div className="bg-blue-100 border-4 border-black p-4 text-center animate-pulse shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+           <div className="bg-blue-100 border-4 border-black p-4 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
              <h3 className="text-xl font-bold mb-4">WEEKEND INTERVIEW</h3>
-             <p className="mb-4">Boss: {INTERVIEWS[gameState.week - 1]?.title}</p>
-             <NoodleGirlAvatar pose="interview" className="scale-75 mb-4 mx-auto"/>
-             <PixelButton onClick={handleInterview} color="bg-red-400">
-                开始面试
-             </PixelButton>
+             
+             {!isInterviewing ? (
+                 <>
+                    <p className="mb-4">Boss: {INTERVIEWS[gameState.week - 1]?.title}</p>
+                    <NoodleGirlAvatar pose="interview" className="scale-75 mb-4 mx-auto"/>
+                    <PixelButton onClick={handleInterview} color="bg-red-400">
+                        开始面试
+                    </PixelButton>
+                 </>
+             ) : (
+                 <div className="animate-bounce">
+                     <p className="mb-4 text-lg font-bold">
+                         {interviewResult?.passed ? "面试通过！🎉" : "面试失败...😭"}
+                     </p>
+                     <NoodleGirlAvatar pose={interviewResult?.passed ? "happy" : "dead"} className="scale-75 mb-4 mx-auto"/>
+                     <p className="text-sm text-gray-500">
+                        {interviewResult?.passed ? "下周继续加油！" : "心态有点崩..."}
+                     </p>
+                 </div>
+             )}
            </div>
         )}
 
