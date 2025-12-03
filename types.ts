@@ -1,5 +1,6 @@
 export enum GamePhase {
   INTRO = 'INTRO',
+  CHARACTER_SELECT = 'CHARACTER_SELECT',
   WEEKLY_LOOP = 'WEEKLY_LOOP',
   EVENT_RESULT = 'EVENT_RESULT',
   INTERVIEW = 'INTERVIEW',
@@ -36,6 +37,7 @@ export interface GameState {
   currentEventImage: string | null; // Base64 image
   isGenerating: boolean; // Loading state
   ending: EndingType | null;
+  outfit: 'casual' | 'sailor';
 }
 
 export interface GameEvent {

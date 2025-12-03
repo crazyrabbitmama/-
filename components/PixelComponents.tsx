@@ -110,11 +110,69 @@ export const PixelPhone = ({ className = '', ringing = false }: { className?: st
   </div>
 );
 
+export const EndingVisual = ({ type, className = '' }: { type: string, className?: string }) => {
+    // Generate different backgrounds based on ending
+    const getBgColor = () => {
+        if (type.includes('BE')) return '#2d3748'; // Dark gray for bad end
+        if (type.includes('NE')) return '#fbd38d'; // Orange for normal
+        if (type === 'GE2') return '#1a202c'; // Night for Lottery
+        if (type.includes('GE')) return '#fefcbf'; // Yellow for good
+        return '#fff';
+    };
+
+    return (
+        <div className={`relative w-64 h-64 border-4 border-black overflow-hidden ${className}`} style={{ backgroundColor: getBgColor() }}>
+             {/* Background Elements */}
+             {type === 'GE2' && ( // Lottery Night City View
+                <>
+                   <div className="absolute top-0 left-0 right-0 h-1/2 bg-indigo-900"></div>
+                   {/* Stars */}
+                   <rect x="10" y="10" width="2" height="2" fill="white" className="animate-pulse" />
+                   <rect x="50" y="20" width="2" height="2" fill="white" className="animate-pulse delay-75" />
+                   <rect x="80" y="5" width="2" height="2" fill="white" className="animate-pulse delay-150" />
+                   {/* City Skyline */}
+                   <rect x="0" y="40" width="20" height="60" fill="#2d3748" />
+                   <rect x="25" y="30" width="30" height="70" fill="#4a5568" />
+                   <rect x="60" y="50" width="20" height="50" fill="#2d3748" />
+                   {/* Windows */}
+                   <rect x="30" y="35" width="4" height="4" fill="yellow" opacity="0.5" />
+                   <rect x="30" y="45" width="4" height="4" fill="yellow" opacity="0.5" />
+                   {/* Balcony Railing */}
+                   <rect x="0" y="80" width="100%" height="4" fill="#000" />
+                   <rect x="10" y="84" width="4" height="20" fill="#000" />
+                   <rect x="30" y="84" width="4" height="20" fill="#000" />
+                   <rect x="50" y="84" width="4" height="20" fill="#000" />
+                   <rect x="70" y="84" width="4" height="20" fill="#000" />
+                   <rect x="90" y="84" width="4" height="20" fill="#000" />
+                </>
+             )}
+
+             {type === 'GE3' && ( // Rich Family
+                 <>
+                    {/* Villa Columns */}
+                    <rect x="10" y="10" width="10" height="90" fill="#fff" stroke="#ccc" />
+                    <rect x="80" y="10" width="10" height="90" fill="#fff" stroke="#ccc" />
+                    {/* Money raining */}
+                    <text x="30" y="30" className="animate-bounce">💰</text>
+                    <text x="50" y="50" className="animate-bounce delay-100">💰</text>
+                 </>
+             )}
+
+             {/* Character Overlay */}
+             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 scale-75 origin-bottom">
+                 <NoodleGirlAvatar pose={type.includes('BE') ? 'dead' : 'happy'} />
+             </div>
+        </div>
+    );
+};
+
 export const NoodleGirlAvatar = ({ 
   pose = 'normal', 
+  outfit = 'casual',
   className = "" 
 }: { 
   pose?: 'normal' | 'work' | 'study' | 'relax' | 'panic' | 'dead' | 'happy' | 'interview', 
+  outfit?: 'casual' | 'sailor',
   className?: string 
 }) => {
   // Palette
@@ -122,15 +180,17 @@ export const NoodleGirlAvatar = ({
     skin: '#ffe0bd',
     skinShadow: '#ffcd94',
     hair: '#333333',     // Dark Bob
-    shirt: '#ffffff',    // White Shirt
+    shirt: outfit === 'sailor' ? '#fdfdfd' : '#ffffff',    // White Shirt
     shirtShadow: '#dddddd',
-    pants: '#556688',    // Blue/Grey Pants
+    pants: outfit === 'sailor' ? '#1a237e' : '#556688',    // Blue/Grey Pants or Navy Skirt
     shoes: '#222222',
     pot: '#888888',
     potRim: '#aaaaaa',
     noodles: '#ffcc00',
     steam: 'rgba(255,255,255,0.6)',
-    blush: '#ffaaaa'
+    blush: '#ffaaaa',
+    collar: '#1a237e', // Sailor collar
+    bow: '#d32f2f'     // Sailor bow
   };
 
   return (
@@ -146,18 +206,53 @@ export const NoodleGirlAvatar = ({
           {/* LEGS */}
           <rect x="20" y="32" width="3" height="10" fill={c.skin} />
           <rect x="25" y="32" width="3" height="10" fill={c.skin} />
+          {/* Sailor Socks */}
+          {outfit === 'sailor' && (
+             <>
+               <rect x="20" y="38" width="3" height="4" fill="#eee" />
+               <rect x="25" y="38" width="3" height="4" fill="#eee" />
+             </>
+          )}
           
-          {/* PANTS/SKIRT */}
-          <rect x="19" y="28" width="10" height="6" fill={c.pants} />
+          {/* PANTS or SKIRT */}
+          {outfit === 'sailor' ? (
+             // Pleated Skirt
+             <g>
+                <path d="M19 28 L29 28 L30 36 L18 36 Z" fill={c.pants} />
+                {/* Pleats */}
+                <rect x="21" y="29" width="1" height="6" fill="rgba(0,0,0,0.2)" />
+                <rect x="24" y="29" width="1" height="6" fill="rgba(0,0,0,0.2)" />
+                <rect x="27" y="29" width="1" height="6" fill="rgba(0,0,0,0.2)" />
+             </g>
+          ) : (
+             // Pants
+             <rect x="19" y="28" width="10" height="6" fill={c.pants} />
+          )}
 
           {/* TORSO (Shirt) */}
           <rect x="18" y="18" width="12" height="11" fill={c.shirt} />
           <rect x="18" y="18" width="1" height="11" fill={c.shirtShadow} /> 
           <rect x="29" y="18" width="1" height="11" fill={c.shirtShadow} />
-          {/* Buttons */}
-          <rect x="23.5" y="20" width="1" height="1" fill="#ddd" />
-          <rect x="23.5" y="23" width="1" height="1" fill="#ddd" />
-          <rect x="23.5" y="26" width="1" height="1" fill="#ddd" />
+          
+          {outfit === 'casual' && (
+            <>
+              {/* Buttons */}
+              <rect x="23.5" y="20" width="1" height="1" fill="#ddd" />
+              <rect x="23.5" y="23" width="1" height="1" fill="#ddd" />
+              <rect x="23.5" y="26" width="1" height="1" fill="#ddd" />
+            </>
+          )}
+
+          {outfit === 'sailor' && (
+             <>
+               {/* Sailor Collar */}
+               <path d="M18 18 L24 24 L30 18 L28 18 L24 22 L20 18 Z" fill={c.collar} />
+               <rect x="19" y="18" width="10" height="1" fill={c.collar} opacity="0.2" /> {/* Trim */}
+               {/* Red Bow */}
+               <path d="M22 24 L26 24 L25 25 L23 25 Z" fill={c.bow} />
+               <path d="M24 24 L22 26 L23 27 L24 25 L25 27 L26 26 Z" fill={c.bow} />
+             </>
+          )}
 
           {/* ARMS - Dynamic based on Pose */}
           {pose === 'work' || pose === 'normal' || pose === 'happy' ? (

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GamePhase, GameState, ActionType, PlayerStats, GameEvent, EndingType } from './types';
 import { EVENTS, SPECIAL_EVENTS, INTERVIEWS, INITIAL_STATS, ENDING_DETAILS } from './constants';
-import { PixelButton, PixelCard, StatBar, NoodleGirlAvatar, BlackHole, PixelPattern, PixelPhone } from './components/PixelComponents';
+import { PixelButton, PixelCard, StatBar, NoodleGirlAvatar, BlackHole, PixelPattern, PixelPhone, EndingVisual } from './components/PixelComponents';
 import { audio } from './services/audio';
 import { 
   Briefcase, BookOpen, MessageCircle, Coffee, Home, User, 
-  Volume2, VolumeX, RefreshCcw, Loader2, Sparkles, Star, Trophy, X, Phone
+  Volume2, VolumeX, RefreshCcw, Loader2, Sparkles, Star, Trophy, X, Phone, HelpCircle, Shirt
 } from 'lucide-react';
 
 const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
@@ -108,6 +108,48 @@ const EndingsGallery = ({ unlocked, onClose }: { unlocked: string[], onClose: ()
   );
 };
 
+const GameInstructions = ({ onClose }: { onClose: () => void }) => (
+  <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+    <PixelCard className="w-full max-w-md max-h-[85vh] overflow-y-auto shadow-2xl relative">
+       <div className="flex justify-between items-center mb-4 border-b-2 border-black pb-2 bg-yellow-50 -mx-4 -mt-4 p-4 rounded-t-sm">
+         <h2 className="text-xl font-bold flex items-center gap-2"><BookOpen size={24}/> 游戏说明</h2>
+         <button onClick={onClose} className="hover:scale-110 transition-transform"><X size={24}/></button>
+       </div>
+       <div className="space-y-5 text-sm leading-relaxed text-gray-800">
+         <p><strong>🎯 目标：</strong> 重生回面馆打工，在6周内平衡生活与求职，达成不同的人生结局。</p>
+         
+         <div className="bg-blue-50 p-3 border-2 border-blue-100 rounded">
+           <strong className="block mb-2 text-blue-800">📅 游戏流程：</strong>
+           <ul className="list-disc pl-5 space-y-1">
+             <li>每周 <strong>周一至周六</strong>，每天选择一次行动（打工、学习等）。</li>
+             <li><strong>周日</strong> 触发面试挑战，通过可推进大厂路线。</li>
+             <li>持续 6 周后，根据属性进入最终结局。</li>
+           </ul>
+         </div>
+
+         <div>
+           <strong className="block mb-2">📊 关键属性：</strong>
+           <ul className="space-y-2">
+             <li className="flex items-center gap-2"><span className="w-2 h-2 bg-pink-400 rounded-full inline-block"></span> <span><strong>Mood (心态)</strong>: <span className="text-red-500">归零即游戏结束！</span>请保持心情愉悦。</span></li>
+             <li className="flex items-center gap-2"><span className="w-2 h-2 bg-yellow-400 rounded-full inline-block"></span> <span><strong>Money (生活费)</strong>: 打工赚取，没钱寸步难行。</span></li>
+             <li className="flex items-center gap-2"><span className="w-2 h-2 bg-blue-400 rounded-full inline-block"></span> <span><strong>Skill (专业)</strong>: 影响后期高级面试。</span></li>
+             <li className="flex items-center gap-2"><span className="w-2 h-2 bg-green-400 rounded-full inline-block"></span> <span><strong>Comm (沟通)</strong>: 影响初期面试与社交。</span></li>
+           </ul>
+         </div>
+
+         <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
+           <strong>✨ 提示：</strong> 共有9种结局等待探索。小心陌生来电，那可能是陷阱，也可能是机遇！
+         </div>
+       </div>
+       <div className="mt-6">
+         <PixelButton onClick={onClose} color="bg-yellow-300">
+           我准备好了！
+         </PixelButton>
+       </div>
+    </PixelCard>
+  </div>
+);
+
 export default function App() {
   const [showBootAnim, setShowBootAnim] = useState(true);
 
@@ -123,7 +165,8 @@ export default function App() {
     currentEventResultText: '',
     currentEventImage: null,
     isGenerating: false,
-    ending: null
+    ending: null,
+    outfit: 'casual'
   });
 
   const [isMuted, setIsMuted] = useState(false);
@@ -138,6 +181,9 @@ export default function App() {
   // Ending Gallery
   const [showGallery, setShowGallery] = useState(false);
   const [unlockedEndings, setUnlockedEndings] = useState<string[]>([]);
+  
+  // Instructions Modal
+  const [showInstructions, setShowInstructions] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   
@@ -394,7 +440,8 @@ export default function App() {
       currentEventResultText: '',
       currentEventImage: null,
       isGenerating: false,
-      ending: null
+      ending: null,
+      outfit: 'casual'
     });
   };
 
@@ -403,8 +450,19 @@ export default function App() {
           audio.playBGM();
           bgmStarted.current = true;
       }
-      setGameState(prev => ({ ...prev, phase: GamePhase.WEEKLY_LOOP }));
+      // Replaced WEEKLY_LOOP with CHARACTER_SELECT
+      setGameState(prev => ({ ...prev, phase: GamePhase.CHARACTER_SELECT }));
       audio.playSfx('jump');
+  };
+
+  const setOutfit = (outfit: 'casual' | 'sailor') => {
+      audio.playSfx('click');
+      setGameState(prev => ({ ...prev, outfit }));
+  };
+
+  const confirmOutfit = () => {
+      audio.playSfx('success');
+      setGameState(prev => ({ ...prev, phase: GamePhase.WEEKLY_LOOP }));
   };
 
   // --- Renders ---
@@ -427,6 +485,8 @@ export default function App() {
       >
         <PixelPattern />
         
+        {showInstructions && <GameInstructions onClose={() => setShowInstructions(false)} />}
+
         {/* Decorative elements */}
         <div className="absolute top-10 left-10 animate-bounce delay-100 text-3xl opacity-50">🍜</div>
         <div className="absolute bottom-20 right-10 animate-pulse delay-700 text-3xl opacity-50">🍜</div>
@@ -442,9 +502,69 @@ export default function App() {
           重生之<br/>我是挂面大王
         </h1>
         <p className="text-sm md:text-xl font-bold mb-12 animate-pulse text-gray-600 z-10 relative">点击屏幕开始打工</p>
+        
+        {/* Instructions Button */}
+        <div className="absolute bottom-12 z-20">
+            <button 
+                onClick={(e) => { e.stopPropagation(); setShowInstructions(true); }}
+                className="bg-white border-2 border-black px-4 py-2 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 hover:-translate-y-1 active:translate-y-0 active:shadow-none transition-all flex items-center gap-2 font-bold text-sm"
+            >
+                <HelpCircle size={18} /> 游戏说明
+            </button>
+        </div>
+
         <div className="absolute bottom-4 text-xs text-gray-400">Gemini Nano Powered Logic</div>
       </div>
     );
+  }
+
+  // Character Select Screen
+  if (gameState.phase === GamePhase.CHARACTER_SELECT) {
+      return (
+          <div className="h-screen w-full flex flex-col items-center justify-center bg-blue-50 p-6 relative overflow-hidden">
+              <PixelPattern />
+              <h2 className="text-2xl font-black mb-8 z-10">选择你的战袍</h2>
+              
+              <div className="flex gap-6 mb-8 z-10">
+                  {/* Casual Option */}
+                  <div 
+                     onClick={() => setOutfit('casual')}
+                     className={`cursor-pointer p-4 border-4 ${gameState.outfit === 'casual' ? 'border-orange-500 bg-orange-100 scale-105 shadow-[4px_4px_0px_0px_rgba(255,165,0,0.5)]' : 'border-black bg-white hover:bg-gray-50'} transition-all rounded-lg flex flex-col items-center`}
+                  >
+                      <NoodleGirlAvatar pose="normal" outfit="casual" className="w-32 h-32" />
+                      <span className="font-bold mt-2">经典打工</span>
+                  </div>
+
+                  {/* Sailor Option */}
+                  <div 
+                     onClick={() => setOutfit('sailor')}
+                     className={`cursor-pointer p-4 border-4 ${gameState.outfit === 'sailor' ? 'border-blue-500 bg-blue-100 scale-105 shadow-[4px_4px_0px_0px_rgba(0,0,255,0.5)]' : 'border-black bg-white hover:bg-gray-50'} transition-all rounded-lg flex flex-col items-center`}
+                  >
+                      <NoodleGirlAvatar pose="normal" outfit="sailor" className="w-32 h-32" />
+                      <span className="font-bold mt-2">水手服</span>
+                  </div>
+              </div>
+
+              {/* Description / OS */}
+              <div className="h-16 mb-8 z-10 w-full max-w-sm text-center">
+                  {gameState.outfit === 'sailor' && (
+                      <div className="animate-pop-in bg-white border-2 border-black p-3 rounded-lg relative inline-block shadow-md">
+                          <p className="text-sm font-medium text-blue-800">
+                             (OS) 或许还可以做团播...💃
+                          </p>
+                          {/* Speech bubble tail */}
+                          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-t-2 border-l-2 border-black transform rotate-45"></div>
+                      </div>
+                  )}
+              </div>
+
+              <div className="w-full max-w-xs z-10">
+                  <PixelButton onClick={confirmOutfit} color="bg-green-400">
+                      确认出发 <Shirt className="ml-2 w-4 h-4 inline"/>
+                  </PixelButton>
+              </div>
+          </div>
+      );
   }
 
   if (gameState.phase === GamePhase.ENDING) {
@@ -454,7 +574,11 @@ export default function App() {
         
         {showGallery && <EndingsGallery unlocked={unlockedEndings} onClose={() => setShowGallery(false)} />}
 
-        <NoodleGirlAvatar pose={gameState.ending?.includes('BE') ? 'dead' : 'happy'} className="mb-8 scale-150 z-10" />
+        {/* Use EndingVisual instead of generic avatar */}
+        <div className="mb-8 scale-125 z-10">
+            <EndingVisual type={gameState.ending || EndingType.NE} />
+        </div>
+        
         <h2 className="text-3xl font-bold mb-4 z-10">结局达成</h2>
         <div className="bg-white border-4 border-black p-6 rounded-lg mb-8 shadow-xl z-10 max-w-sm w-full relative">
           <div className="absolute -top-3 -right-3 text-4xl animate-bounce">🏆</div>
@@ -507,7 +631,8 @@ export default function App() {
         <div className="mb-6 flex justify-center py-4 bg-yellow-50 border-2 border-black border-dashed rounded-lg relative">
            <div className="absolute top-2 left-2 text-orange-200 opacity-50"><Sparkles size={16}/></div>
            <div className="absolute bottom-2 right-2 text-orange-200 opacity-50"><Sparkles size={16}/></div>
-           <NoodleGirlAvatar pose={mainAvatarPose} />
+           {/* Pass outfit to avatar */}
+           <NoodleGirlAvatar pose={mainAvatarPose} outfit={gameState.outfit} />
         </div>
 
         {/* Stats Grid */}
@@ -551,7 +676,7 @@ export default function App() {
              {!isInterviewing ? (
                  <>
                     <p className="mb-4">Boss: {INTERVIEWS[gameState.week - 1]?.title}</p>
-                    <NoodleGirlAvatar pose="interview" className="scale-75 mb-4 mx-auto"/>
+                    <NoodleGirlAvatar pose="interview" outfit={gameState.outfit} className="scale-75 mb-4 mx-auto"/>
                     <PixelButton onClick={handleInterview} color="bg-red-400">
                         开始面试
                     </PixelButton>
@@ -561,7 +686,7 @@ export default function App() {
                      <p className="mb-4 text-lg font-bold">
                          {interviewResult?.passed ? "面试通过！🎉" : "面试失败...😭"}
                      </p>
-                     <NoodleGirlAvatar pose={interviewResult?.passed ? "happy" : "dead"} className="scale-75 mb-4 mx-auto"/>
+                     <NoodleGirlAvatar pose={interviewResult?.passed ? "happy" : "dead"} outfit={gameState.outfit} className="scale-75 mb-4 mx-auto"/>
                      <p className="text-sm text-gray-500">
                         {interviewResult?.passed ? "下周继续加油！" : "心态有点崩..."}
                      </p>
@@ -624,7 +749,7 @@ export default function App() {
              {/* AVATAR SCENE DISPLAY */}
              <div className="w-full aspect-square bg-yellow-100 border-2 border-black mb-4 flex items-center justify-center relative overflow-hidden">
                  <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle,_#000_1px,_transparent_1px)] bg-[length:8px_8px]"></div>
-                 <NoodleGirlAvatar pose={gameState.currentEventImage as any || 'normal'} />
+                 <NoodleGirlAvatar pose={gameState.currentEventImage as any || 'normal'} outfit={gameState.outfit} />
              </div>
 
              <p className="text-lg mb-6 whitespace-pre-wrap font-medium leading-relaxed">
